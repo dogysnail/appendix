@@ -1,0 +1,142 @@
+.lds-dual-ring {
+    display: inline-block;
+    width: 80px;
+    height: 80px;
+  
+  }
+  .lds-dual-ring:after {
+    content: " ";
+  
+    width: 64px;
+    height: 64px;
+    position: absolute;
+    margin-top: 44vh;
+    margin-left: 47.5vw;
+  
+    border-radius: 50%;
+    border: 6px solid #fff;
+    border-color: #fff transparent #fff transparent;
+    animation: lds-dual-ring 1.2s linear infinite;
+    transition: 0.5s;
+  }
+  @keyframes lds-dual-ring {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  
+  
+  #loadingDiv{
+
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    left: 0;
+    top: 0;
+  }
+  
+
+  noscript{
+    position: absolute;
+    width: 100vw;
+    text-align: center;
+    color: white;
+  }
+  
+
+
+body{
+  overflow: hidden;
+  background-color: #E8F2FF;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+
+#content{
+  background-color: #7869da1b;
+  width: 60vw;
+  height: 80vh;
+
+  left: 25vw;
+  top: 10vh;
+
+  position: absolute;
+}
+
+
+#menuBar{
+  width: 25vw;
+  height: 100vh;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  text-align: center;
+}
+
+#menuBar input:hover{
+  cursor: pointer;
+}
+
+
+#accnt{
+  width: 20vw;
+  height: 10vh;
+  position: absolute;
+  left: 2.5vw;
+  bottom: 5vh;
+  transition: 0.3s;
+  background-image: linear-gradient(130deg, rgba(117,100,217,1) 0%, rgba(117,100,217,0.78) 100%);
+}
+
+#accnt:hover {
+  filter: contrast(2);
+  cursor: pointer;
+}
+
+
+#accnt img{
+  height: 4vw;
+  width: 4vw;
+  border-radius: 50px;
+  position: absolute;
+  right: 1vw;
+  top: 1.5vh;
+}
+#accnt p{
+  color: white;
+  position: absolute;
+  font-size: 2vw;
+  top: -1vh;
+  left: 2vw;
+  font-weight: 600;
+}
+
+#menuBar p{
+  font-size: 2vw;
+}
+
+
+.navinput{
+
+  width: 20vw;
+  height: 8vh;
+  padding-left: 1vw;
+  margin-bottom: 3vh;
+  border-radius: 1vh;
+  border: none;
+  text-align: left;
+  font-size: min(2vw, 3vh);
+  background-color: #E8F2FF;
+  transition: 0.2s; 
+}
+
+#menuBar input:hover{
+  background-color: #cde3ff;
+}
+
+#active {
+  background-color: #e2cbff;
+}

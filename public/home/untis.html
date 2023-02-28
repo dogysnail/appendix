@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./common.css">
+</head>
+<body>
+
+    <div id="main">
+        <div id="menuBar">
+            <p>Some App Name.</p><br><br><br>
+                <input type="button" id="" onclick="toHome()" class="navinput"value="Dashboard">
+                <input type="button" id="active" class="navinput"value="Webuntis Scraper">
+                <input type="button" onclick="toMB()" class="navinput"value="Managebac Scraper">
+                <input type="button" class="navinput"value="Help Me">
+            
+            <div id="accnt" onclick="showSettings()">
+                <p id="welcomeText2">Loading...</p>
+                <img src="" id="profilePic">
+    
+            </div>
+        </div>
+        <div id="content">
+            <p>Set up Untis</p>
+
+            <form id="form">
+                <input type="text" id="username" placeholder="untis username">
+                <input type="password" id="password" placeholder="untis password">
+                <input type="submit" value="submit">
+            </form>
+        
+        </div>
+    </div>
+
+
+
+    <div id="loadingDiv" style="background-color: rgb(62, 0, 0);">
+        <div class="lds-dual-ring"></div>
+    </div>
+    
+    <noscript>
+        <p>You need to enable javascript to use this app.</p>
+    </noscript>
+    <script src="./untis.js"></script>
+</body>
+</html>

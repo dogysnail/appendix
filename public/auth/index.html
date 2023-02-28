@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+
+    <div class="left">
+        <div id="loginDiv">
+            <h1>Hi, Welcome Back.</h1>
+            <h3>We really did miss you!</h3>
+            <form id="login">
+                <p>Username</p>
+                <input id="nameLogin" type="text" name="username" placeholder="Eg. Dogysnail">
+                <p>Password</p>
+                <input id="passLogin" type="password" name="password" placeholder="Eg. 1234">
+                <p id="forgorPass">Forgot your Password? <a href="">Reset it here.</a></p>
+                <p id="forgorPass">Or <a href="javascript:signupchange()">Create a account.</a></p>
+                <p id="errLogin" class="error"></p>
+                <input type="submit" id="submitLogin" class="submit" value="Login">
+            </form>
+        </div>
+        
+        <div id="signupDiv" style="display:none;">
+            <h1>Now its time to sign up.</h1>
+            <h3>A world awaits!</h3>
+            <form id="signup">
+                <p>Username</p>
+                <input id="name" type="text" name="username" placeholder="Eg. Dogysnail">
+                <p>Email</p>
+                <input id="email" type="text" name="email" placeholder="Eg. joe@gmail.com">
+                <p>Password</p>
+                <input id="pass" type="password" name="password" placeholder="Eg. 1234">
+                <p id="forgorPass">Or <a href="javascript:loginchange()">log into your account.</a></p>
+                <p id="errSignup" class="error"></p>
+                <input type="submit" id="submitSignup" class="submit" value="submit">
+            </form>
+        </div>
+
+
+
+    </div>
+    <div class="right">
+
+    </div>
+    <div id="blur" style="display: none;">
+        <div id="alertDiv">
+            <h1>You have been sent a verification email!</h1>
+            <h3>Click the link in your email to verify and then proceed to log in again.</h3>
+            <h3>(It is safe to close this window now)</h3>
+        </div>
+    </div>
+
+
+    <script src="./script.js"></script>
+</body>
+</html>

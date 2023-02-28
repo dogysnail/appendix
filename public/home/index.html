@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./common.css">
+</head>
+<body>
+
+
+    <div id="main" >
+
+
+        <div id="menuBar">
+            <p>Some App Name.</p><br><br><br>
+                <input type="button" id="active" class="navinput"value="Dashboard">
+                <input type="button" onclick="toUntis()" class="navinput"value="Webuntis Scraper">
+                <input type="button" onclick="toMB()" class="navinput"value="Managebac Scraper">
+                <input type="button" class="navinput"value="Help Me">
+            
+            <div id="accnt" onclick="showSettings()">
+                <p id="welcomeText2">Loading...</p>
+                <img src="" id="profilePic">
+    
+            </div>
+        </div>
+    
+        <div id="content">
+            <div class="buble largeBuble">
+                <p>Welcome Back, <span id="welcomeText">Loading...</span></p>
+            </div>
+            <div class="buble midBuble" id="midbbl1">
+                <h1>Cancelled Lessons This Week:</h1>
+                <ul id="cancelledForm">
+
+                </ul>
+            </div>
+            <div class="buble smallBuble" id="smlbbl1" onclick="showSettings()">
+    <br>            <img src="" id="profilePic2">
+                <p>Update Your Profile</p>
+            </div>
+            <div class="buble smallBuble" id="smlbbl2">
+                <br>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/59/Google_Classroom_Logo.png" alt="">
+                <p><span>0</span> Tasks due Today</p>
+            </div>
+            <div class="buble midBuble" id="midbbl2">
+                <h1>MB Work due today:</h1>
+                <ul id="mbList">
+
+                </ul>
+            </div>
+    
+    
+    
+        </div>
+    
+        <div id="settings" style="display: none;">
+            <div class="largeBuble">
+                <p>Account Settings: <span id="welcomeText3">Loading...</span></p>
+                <img id="profilePic3"src="https://thumbs.gfycat.com/AdorableSilkyAmericancrow-size_restricted.gif" alt="">
+            </div>
+
+            <div class="midBuble" id="midbbl1">
+                <h1>Profile Picture Change</h1>
+                <input type="text" id="pfpInput" placeholder="link to profile picture">
+                <input type="submit" class="pfpSubmit" id="" value="Confirm Upload" onclick="uploadImg()">
+                <input type="submit" class="pfpSubmit" id="pfpSubmit" value="Upload" onclick="previewImg()">
+                <p>Preview: </p>
+                <img id="imgPreview" src="" alt="preview">
+            </div>
+
+            <div class="largeBuble" id="changePassAndEmail">
+                <p>Change Password &    Email</p>
+            </div>
+
+            <input type="button" value="logout" onclick="logout()">
+            <div class="outer" onclick="hideSettings()">
+                <div class="inner">
+                  <label>Back</label>
+                </div>
+              </div>
+        </div>
+
+    </div>
+
+    <div id="loadingDiv">
+        <div class="lds-dual-ring"></div>
+    </div>
+
+
+
+    <noscript>
+        <p>You need to enable javascript to use this app.</p>
+    </noscript>
+
+    <script src="./script.js"></script>
+</body>
+</html>
