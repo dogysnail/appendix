@@ -1,0 +1,34 @@
+ul{
+    padding-left: 3vw;
+    width: 55vw;
+    list-style-type: none;
+    max-height: 66vh;
+    overflow: scroll;
+}
+
+li{
+    background-color: #e2cbff;
+    padding-left: 1vw;
+    padding-right: 1vw;
+    padding-top: 0.5vh;
+    padding-bottom: 0.5vh;
+    margin-bottom: 2vh;
+}
+
+li h3{
+    font-size: 100%;
+    font-weight: 200;
+}
+
+li h2{
+    font-size: 150%;
+    font-weight: 300;
+}
+
+
+
+#content h1{
+    padding-left: 2vw;
+    font-size: 200%;
+    font-weight: 400;
+}

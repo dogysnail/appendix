@@ -26,6 +26,7 @@ function checkAuth() {
                 document.getElementById("welcomeText").innerText = x.user.username
                 document.getElementById("welcomeText2").innerText = x.user.username
                 document.getElementById("welcomeText3").innerText = x.user.username
+                document.getElementById("numMsgs").innerText = x.messages
                 activeUser = x.user
 
                 document.getElementById("profilePic").src = x.user.profilePic

@@ -39,7 +39,7 @@ app.use("/api", limiter)
 
 async function sendVerificationEmail(email, id){
 
-    var verifyLink = "http://localhost:3000/verify/" + id + "/"
+    var verifyLink = "http://http://139.162.146.133:3000/verify/" + id + "/"
     let transporter = nodemailer.createTransport({
         host: "smtp-mail.outlook.com",
     port: 587,
@@ -187,7 +187,7 @@ async function signup(username, password, email) {
         const database = client.db('auth');
         const creds = database.collection('creds');
         var randID = randomUUID()
-        const doc = {id:randID ,username: username, email: email, password: password, profilePic: "https://iili.io/HG5BF9t.png", untis:undefined, mbSession:undefined, verified: false}
+        const doc = {id:randID ,username: username, email: email, password: password, profilePic: "https://iili.io/HG5BF9t.png", untis:undefined, mbSession:undefined, messages:{}, verified: false}
         const result = await creds.insertOne(doc)
         await run(username)   
         sendVerificationEmail(crntUser.email, crntUser.id)
@@ -293,6 +293,7 @@ async function run(usr) {
     }
   }
 
+
 async function logout(user){
     try {
         await client.connect(uri)
@@ -393,6 +394,23 @@ app.post("/api/signup", async (req, res) =>{
     }
 })
 
+app.post("/api/messages", async (req,res)=>{
+
+    var cookie = req.body.cookie[1]
+
+    if (cookie == undefined) {
+        res.send({status:"Error: wrong cookie"})
+    }
+    else{
+        await checkCookie(cookie)
+
+        if (success == undefined) {
+            res.send({status:"Error: wrong cookie"})
+        } else {
+            res.send({status:"Success", messages:success.messages})
+        }
+    }
+})
 
 
 app.post("/api/checkcookie", async (req,res)=>{
@@ -411,7 +429,13 @@ app.post("/api/checkcookie", async (req,res)=>{
             res.sendFile(__dirname + "/public/unverified.html")
         }
         else{
-            res.send({status: "authComplete", user:{username: success.username, email: success.email, profilePic: success.profilePic}})
+
+            if (success.messages.length == undefined) {
+                var k = 0
+            } else {
+                k = success.messages.length
+            }
+            res.send({status: "authComplete", user:{username: success.username, email: success.email, profilePic: success.profilePic}, messages:k})
         }
      }
     

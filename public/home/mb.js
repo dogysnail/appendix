@@ -55,6 +55,8 @@ function checkAuth() {
                 document.getElementById("loadingDiv").style.display = "none"
                 document.getElementById("welcomeText2").innerText = x.user.username
                 document.getElementById("profilePic").src = x.user.profilePic
+                document.getElementById("numMsgs").innerText = x.messages
+
             }
 
             else{

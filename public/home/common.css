@@ -140,3 +140,26 @@ body{
 #active {
   background-color: #e2cbff;
 }
+
+#mssgsDiv{
+  background-color: #e2cbff;
+  width: 20vw;
+  position: absolute;
+  left: 2.5vw;
+  bottom: 18vh;
+  transition: 0.5s;
+}
+
+#mssgsDiv h1{
+  font-size: 120%;
+  font-weight: 400;
+}
+
+#mssgsDiv p{
+  font-size: 100%;
+  font-weight: 100;
+}
+#mssgsDiv:hover{
+  cursor: pointer;
+  filter: contrast(1.3);
+}

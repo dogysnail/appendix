@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages</title>
+    <link rel="stylesheet" href="./common.css">
+    <link rel="stylesheet" href="./messages.css">
+</head>
+<body>
+    <div id="main">
+        <div id="menuBar">
+            <p>Some App Name.</p><br><br><br>
+                <input type="button" id="" onclick="window.location.href='/home'" class="navinput"value="Dashboard">
+                <input type="button" id="" onclick="window.location.href='/home/untis' "class="navinput"value="Webuntis Scraper">
+                <input type="button" onclick="window.location.href='/home/mb'" class="navinput"value="Managebac Scraper">
+                <input type="button" onclick="alert('YOU DONT DESERVE HELP')"class="navinput"value="Help Me">
+            
+            <div id="accnt" onclick="window.location.href = '/home'">
+                <p id="welcomeText2">Loading...</p>
+                <img src="" id="profilePic">
+    
+            </div>
+        </div>
+        <div id="content">
+            <h1>Messages</h1>
+
+            <ul id="ul">
+
+            </ul>
+
+        </div>
+    </div>
+    <div id="loadingDiv" style="background-color: rgb(62, 0, 0);">
+        <div class="lds-dual-ring"></div>
+    </div>
+    
+    <noscript>
+        <p>You need to enable javascript to use this app.</p>
+    </noscript>
+
+    <script src="./messages.js"></script>
+</body>
+</html>
