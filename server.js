@@ -50,11 +50,22 @@ async function sendVerificationEmail(email, id){
     }
     })
 
-    let info = await transporter.sendMail({
+    var mailData = {
         from: `"Verification Email" <${process.env.EMAIL}>`, // sender address
         to: email, // list of receivers
         subject: "Verify your email!", // Subject line
         text: "Please verify your email by clicking this link: " + verifyLink + "\n\n\n Did you not request this email or create a account? Then please ignore it", // plain text body
+      }
+
+    await new Promise((resolve, reject) => {
+        transporter.sendMail(mailData, (err, info) => {
+          if (err) {
+            console.error(err);
+            reject(err);
+          } else {
+            resolve(info);
+          }
+        });
       });
 }
 
