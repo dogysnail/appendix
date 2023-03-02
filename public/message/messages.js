@@ -94,3 +94,34 @@ function checkMsgs() {
     };
     
 }
+
+document.getElementById("msgForm").addEventListener("submit", (e)=>{
+    e.preventDefault()
+    var authCookie = document.cookie.split("=")
+    var message = document.getElementById("message").value
+    var recipient = document.getElementById("recipient").value
+    var xhr = new XMLHttpRequest();
+    var payload = {cookie:authCookie, message:message, recipient:recipient}
+    xhr.open("POST", "/api/sendmsg", true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send(JSON.stringify(payload));
+    xhr.onload = function () {
+        // Process our return data
+        if (xhr.status >= 200 && xhr.status < 300) {
+            // Runs when the request is successful
+            var x = JSON.parse(xhr.responseText)
+
+            if(x.status == "success"){
+                alert("Message succesfully sent")
+            }
+            else{
+                alert(x.status)
+            }
+            
+        } else {
+            // Runs when it's not
+            console.log(xhr.responseText);
+        }
+    
+    };
+})

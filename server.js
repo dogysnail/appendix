@@ -1,7 +1,7 @@
 const express = require("express")
 require('dotenv').config()
-
 var resp = ""
+const io = require('@pm2/io')
 const request = require('request');
 const fs = require("fs");
 var date = new Date
@@ -9,22 +9,22 @@ var month = parseInt(date.getMonth())
 month = month+1
 var formattedDate = date.getFullYear() + "-" + month + "-" + date.getDate()
 var untisResult = undefined
-
+const stripe = require('stripe')(process.env.STRIPETEST);
 const bcrypt = require('bcrypt');
 const unirest = require('unirest');
 const saltrnd = 5
+const IP = require('ip');
 const nodemailer = require("nodemailer");
 var cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const PORT = process.env.PORT || 3000
 const app = express()
 const path = require("path");
-const { randomInt, randomBytes, randomUUID } = require("crypto");
+const { randomUUID } = require("crypto");
 const rateLimit = require("express-rate-limit")
 const uri = `mongodb+srv://admin:${process.env.MONGODBPASS}@authcluster.uoxofvv.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri);
-app.use('/home', express.static(path.join(__dirname, 'public/home')))
-app.use("/auth", express.static(path.join(__dirname, 'public/auth')))
+app.use("/", express.static(path.join(__dirname, "/public/")))
 app.use(express.urlencoded({extended: true})); 
 app.use(express.json())
 app.use(cookieParser());
@@ -39,19 +39,22 @@ app.use("/api", limiter)
 
 async function sendVerificationEmail(email, id){
 
-    var verifyLink = "http://http://139.162.146.133:3000/verify/" + id + "/"
+    var verifyLink = "http://https://tymeloux.eu/verify/" + id + "/"
     let transporter = nodemailer.createTransport({
-        host: "smtp-mail.outlook.com",
-    port: 587,
-    secure: false, // true for 465, false for other ports
+        host: "mail.smtp2go.com",
+    port: 465,
+    secure: true, // true for 465, false for other ports
     auth: {
       user: process.env.EMAIL, // generated ethereal user
       pass: process.env.EMAILPASS, // generated ethereal password
     }
     })
 
+
+    
+
     var mailData = {
-        from: `"Verification Email" <${process.env.EMAIL}>`, // sender address
+        from: `"Tymeloux Verification" <${process.env.EMAIL}>`, // sender address
         to: email, // list of receivers
         subject: "Verify your email!", // Subject line
         text: "Please verify your email by clicking this link: " + verifyLink + "\n\n\n Did you not request this email or create a account? Then please ignore it", // plain text body
@@ -73,6 +76,12 @@ var crntUser = ""
 var untisData = undefined
 
 //untis functions
+
+const realtimeUser = io.metric({
+    name: 'Realtime user',
+  })
+
+var realTimeUsers = 0
 
 function checkUntisLogin(jses) {
     var options = {
@@ -99,7 +108,6 @@ function checkUntisLogin(jses) {
 
             untisResult =   "is a real account"
            } catch (error) {
-            console.log(error)
             untisResult =   "not a real account"
            }
 
@@ -187,7 +195,24 @@ async function signup(username, password, email) {
         const database = client.db('auth');
         const creds = database.collection('creds');
         var randID = randomUUID()
-        const doc = {id:randID ,username: username, email: email, password: password, profilePic: "https://iili.io/HG5BF9t.png", untis:undefined, mbSession:undefined, messages:{}, verified: false}
+        const doc = {
+            id:randID,
+            username: username, 
+            email: email, 
+            password: password, 
+            profilePic: "https://iili.io/HG5BF9t.png", 
+            untis:undefined, 
+            mbSession:undefined, 
+            messages:["Welcome To the Tymeloux Club!"], 
+            lastSent: new Date(0),
+            permissions: {
+                verified:false, 
+                paid:false, 
+                admin:false,
+                banned:false, 
+                earlyUser:true
+            }
+        }
         const result = await creds.insertOne(doc)
         await run(username)   
         sendVerificationEmail(crntUser.email, crntUser.id)
@@ -263,9 +288,8 @@ async function verifyTrue(userid){
         await client.connect(uri)
         const database = client.db('auth');
         const creds = database.collection('creds');
-        const updateDoc = {$set:{verified:true}}
+        const updateDoc = {$set:{"permissions.verified":true}}
         const filter = {id: userid}
-        await creds.updateOne(filter, updateDoc)
         const result = await creds.updateOne(filter, updateDoc)
         success = result
 
@@ -294,6 +318,26 @@ async function run(usr) {
   }
 
 
+  var emailSuc = undefined
+  async function runEmail(email) {
+    try {
+      await client.connect(uri)
+      const database = client.db('auth');
+      const creds = database.collection('creds');
+      const query = { email: email };
+      const result = await creds.findOne(query);
+      emailSuc = result
+      
+    } finally {
+      // Ensures that the client will close when you finish/error
+      
+      await client.close();
+  
+      
+    }
+  }
+
+
 async function logout(user){
     try {
         await client.connect(uri)
@@ -311,6 +355,26 @@ async function logout(user){
 }
 
 
+async function sendMsg(recipient, msg, sender) {
+    try {
+        
+        await client.connect(uri)
+        var x ="Message from " + sender +": "+ msg
+        const database = client.db('auth');
+        const creds = database.collection('creds');
+        const updateDoc = {$push:{messages:x}}
+        const updateDoc2 = {$set:{lastSent:new Date()}}
+        const filter = {username: recipient}
+        const filter2 = {username:sender}
+        await creds.updateOne(filter2, updateDoc2)
+        const result = await creds.updateOne(filter, updateDoc)
+        success = result
+    }
+    finally{
+        await client.close()
+    }
+}
+
 
 // friends system
 
@@ -319,14 +383,54 @@ var jses = undefined
 
 
 
+// Payments
+app.post('/api/create-payment-intent', async (req, res) => {
+    // Create a PaymentIntent with the order amount and currency
+    
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: 1000,
+      currency: "eur",
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
+  
+    res.send({
+      clientSecret: paymentIntent.client_secret,
+    });
+  });
 
+async function paymentCompleted(email, option, cookie) {
+    try {
+        var x = null
+        if (option == "email") {
+            x = {email:email}
+        }
+        else{
+            x = {cookie:{[cookie]:"s"}}
 
+        }
 
+        await client.connect(uri)
+        const database = client.db('auth');
+        const creds = database.collection('creds');
+        const updateDoc = {$set:{"permissions.paid":true}}
+        const filter = x
+        const result = await creds.updateOne(filter, updateDoc)
+        success = result
+
+    }
+    finally{
+        await client.close()
+    }
+}
 
 
 // auth system
 
 app.post("/api/logout", async (req,res)=>{
+    realTimeUsers = realTimeUsers -1
+    realtimeUser.set(realTimeUsers)
     var username = req.body.user
     await logout(username)
     res.send({status:"logoutSuccess!"})
@@ -337,10 +441,9 @@ app.get("/verify/:userID/", async (req,res)=>{
     var id = req.params.userID
     await verifyUpdate(id)
 
-
-    if(success.verified == false){
+    if(success.permissions.verified == false){
         await verifyTrue(id)
-        res.redirect("/home")
+        res.redirect("/payment")
     }
     else{
         res.send("You have already been verified.")
@@ -353,15 +456,20 @@ app.post("/api/signup", async (req, res) =>{
     var user = req.body.username
     var pass = req.body.password
     var email = req.body.email
-
+    
     if (user == "" || pass == "" || email == "") {
         res.send({status:"Error: Empty Fields"})
-    } else {
-        
+    } 
     
-
+    else if (user.length >= 25){
+        res.send({status: "Error: Username too long"})
+    }
+        
+    else {
+        
 
     await run(user)
+    await runEmail(email)
     
     var usr = crntUser
 
@@ -372,6 +480,10 @@ app.post("/api/signup", async (req, res) =>{
         res.send({status:"Error: Account under that name already exists"})
         
 
+    }
+
+    else if (emailSuc != null){
+        res.send({status:"Error: Account with that email already exists"})
     }
     else {
 
@@ -415,7 +527,8 @@ app.post("/api/messages", async (req,res)=>{
 
 app.post("/api/checkcookie", async (req,res)=>{
 
-
+    realTimeUsers = realTimeUsers +1
+    realtimeUser.set(realTimeUsers)
     var cookie = req.body[1]
     await checkCookie(cookie)
 
@@ -425,17 +538,21 @@ app.post("/api/checkcookie", async (req,res)=>{
      }
      else {
 
-        if (success.verified == false) {
-            res.sendFile(__dirname + "/public/unverified.html")
+        if (success.permissions.verified == false) {
+            res.send({status:"unverified"})
         }
         else{
-
-            if (success.messages.length == undefined) {
-                var k = 0
+            if (success.permissions.paid == false) {
+                res.send({status:"unpaid"})
             } else {
-                k = success.messages.length
+                if (success.messages.length == undefined) {
+                    var k = 0
+                } else {
+                    k = success.messages.length
+                }
+                res.send({status: "authComplete", user:{username: success.username, email: success.email, profilePic: success.profilePic}, messages:k, permissions:success.permissions})
             }
-            res.send({status: "authComplete", user:{username: success.username, email: success.email, profilePic: success.profilePic}, messages:k})
+            
         }
      }
     
@@ -643,6 +760,46 @@ app.post("/api/managebacsetup", async (req, res)=>{
 
 
 
+app.post("/api/sendmsg", async (req,res)=>{
+    var cookie = req.body.cookie[1]
+    var recipient = req.body.recipient
+    var msg = req.body.message
+    if (recipient == "" || msg == "") {
+        res.send({status:"Error: Incomplete fields"})
+    } else{
+        if (cookie == ""){
+            res.send({status:"Error: Incorrect cookie"})
+        }
+        else{
+            await checkCookie(cookie)
+            if (success == undefined) {
+                res.send({status:"Error: Incorrect cookie"})
+            } else {
+                var date = new Date().getTime() - new Date(success.lastSent).getTime()
+                var OneDay = (1 * 12 * 60 * 60 * 1000)
+                if (OneDay > date) {
+                    res.send({status: "Error: Too many messages sent in the last 12 hours"})
+                }
+                else if (OneDay < date) {
+                    var sender = success
+                    await run(recipient)
+                    var recipientCheck = crntUser
+    
+                    if (recipientCheck == undefined || recipient == success.username) {
+                        res.send({status:"Invalid recipient"})
+                    } else {
+                        await sendMsg(recipient, msg, success.username)
+                        res.send({status: "success"})
+                    }
+                }
+
+               
+            }
+        }
+    }
+    
+})
+
 app.post("/api/managebac", async (req,res)=>{
 
     await checkCookie(req.body.cookie[1])
@@ -677,22 +834,6 @@ app.post("/api/managebac", async (req,res)=>{
     
 
 })
-
-app.get("/home/mb", (req,res)=>{
-    res.redirect("/home/managebac.html")
-})
-
-app.get("/", (req,res)=>{
-    res.redirect("/home")
-})
- app.get('/users/:userId/', (req, res) => {
-      res.send(req.params)
-    })
-
-app.get("/home/untis", (req,res)=>{
-    res.redirect("/home/untis.html")
-})
-
 
 // Account Changes
 
@@ -747,6 +888,173 @@ app.post("/api/usernameChange", async (req, res)=>{
 
    
 })
+
+
+
+app.get("/auth", async (req,res)=>{
+    var cookie = req.cookies.auth
+    await checkCookie(cookie)
+
+    if(success != undefined){
+        res.redirect("/home")
+    }
+    else{
+        res.sendFile(__dirname + "/private/auth.html")
+    }
+})
+
+app.get("/home", async (req,res)=>{
+    var cookie = req.cookies.auth
+    await checkCookie(cookie)
+
+    if(success == undefined){
+        res.redirect("/auth")
+    }
+    else if (success.permissions.verified == false){
+        res.redirect("/pendingVerify")
+    }
+
+    else if (success.permissions.paid == false){
+        res.redirect("/payment")
+    }
+
+    else{
+        res.sendFile(__dirname + "/private/home.html")
+
+    }
+})
+
+app.get("/untis", async(req,res)=>{
+    var cookie = req.cookies.auth
+    await checkCookie(cookie)
+
+    if(success != undefined){
+        res.sendFile(__dirname + "/private/untis.html")
+    }
+    else if (success.permissions.verified == false){
+        res.redirect("/pendingVerify")
+    }
+
+    else if (success.permissions.paid == false){
+        res.redirect("/payment")
+    }
+
+    else{
+        res.redirect("/auth")
+    }
+})
+
+app.get("/mb", async(req,res)=>{
+    var cookie = req.cookies.auth
+    await checkCookie(cookie)
+
+    if(success == undefined){
+        res.redirect("/auth")
+
+    }
+    else if (success.permissions.verified == false){
+        res.redirect("/pendingVerify")
+    }
+
+    else if (success.permissions.paid == false){
+        res.redirect("/payment")
+    }
+
+    else{
+        res.sendFile(__dirname + "/private/managebac.html")
+
+    }
+})
+
+app.get("/message", async(req,res)=>{
+    var cookie = req.cookies.auth
+    await checkCookie(cookie)
+
+    if(success == undefined){
+        res.redirect("/auth")
+    }
+
+    else if (success.permissions.verified == false){
+        res.redirect("/pendingVerify")
+    }
+
+    else if (success.permissions.paid == false){
+        res.redirect("/payment")
+    }
+
+    else{
+        res.sendFile(__dirname + "/private/messages.html")
+    }
+})
+
+
+app.get("/payment", async(req,res)=>{
+    var cookie = req.cookies.auth
+    await checkCookie(cookie)
+    if (success == undefined) {
+        res.redirect("/auth")
+    }
+    else if (success.permissions.paid == false){
+        res.sendFile(__dirname + "/private/payment.html")
+    }
+
+    else {
+        res.redirect("/home")
+    }
+})
+app.get("/pendingVerify", async(req,res)=>{
+    var cookie = req.cookies.auth
+    await checkCookie(cookie)
+    if (success == undefined) {
+        res.redirect("/auth")
+    }
+    else if (success.permissions.verified == false){
+        res.sendFile(__dirname + "/private/verify.html")
+    }
+    else {
+        res.redirect("/home")
+    }
+})
+
+app.get("/", (r, s)=>{
+    s.redirect("/landing")  
+})
+
+app.get("/paymentcomplete", async (req,res)=>{
+    
+
+    var paymentIntent = req.query.payment_intent
+
+    const intent = await stripe.paymentIntents.retrieve(paymentIntent);
+    const latest_charge = intent.charges.data
+    if (JSON.stringify(latest_charge) == "[]"){
+        res.send("payment didnt succeed.")
+    }
+    else if (latest_charge[0].paid == true) {
+        var email = latest_charge[0].receipt_email
+        await paymentCompleted(email, "email")
+        if (success.modifiedCount == 1) {
+            res.send("account updated")
+        }
+        else{
+            await paymentCompleted("email", "cookie", req.cookies.auth)
+            if (success.modifiedCount == 1) {
+                res.send("account updated with cookie")
+                console.log("yay, new payment")
+            }
+            else{
+                res.send("attemped but didnt work")
+            }
+        }
+    }
+    else{
+        res.send("payment didnt succeed.")
+    }
+    
+
+    
+})
+
 
 
 app.listen(PORT, ()=>{

@@ -5,15 +5,15 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Managebac</title>
-    <link rel="stylesheet" href="./common.css">
+    <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 
     <div id="main">
         <div id="menuBar">
             <p>Some App Name.</p><br><br><br>
-                <input type="button" id="" onclick="toHome()" class="navinput"value="Dashboard">
-                <input type="button" onclick="toUntis()" class="navinput"value="Webuntis Scraper">
+                <input type="button" id="" onclick="window.location.href = '/home'" class="navinput"value="Dashboard">
+                <input type="button" onclick="window.location.href = '/untis'" class="navinput"value="Webuntis Scraper">
                 <input type="button" id="active" class="navinput"value="Managebac Scraper">
                 <input type="button" class="navinput"value="Help Me">
             
@@ -21,7 +21,7 @@
                 <p id="welcomeText2">Loading...</p>
                 <img src="" id="profilePic">
             </div>
-            <div id="mssgsDiv" onclick="window.location.href = '/home/messages.html'">
+            <div id="mssgsDiv" onclick="window.location.href = '/message'">
                 <h1>You have <span id="numMsgs">0</span> messages.</h1>
                 <p>Click here to view more info</p>
 

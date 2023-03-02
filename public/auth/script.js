@@ -3,38 +3,11 @@ const login = document.getElementById("login")
 
 var activeUser = undefined
 
-function checkAuth() {
-    var authCookie = document.cookie.split("=")
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/checkcookie", true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.send(JSON.stringify(authCookie));
-    xhr.onload = function () {
-        // Process our return data
-        if (xhr.status >= 200 && xhr.status < 300) {
-            // Runs when the request is successful
-            console.log(xhr.responseText);
-            var x = JSON.parse(xhr.responseText)
-
-            if(x.status == "authComplete"){
-                activeUser = x.user
-				window.location.href = "/home"
-            }
-
-
-        } else {
-            // Runs when it's not
-            console.log(xhr.responseText);
-        }
-    
-    };
-}
-
-checkAuth()
 
 signup.addEventListener("submit", (e)=>{
     e.preventDefault()
     document.getElementById("submitSignup").value = "Loading..."
+    document.getElementById("submitSignup").disabled = true
     const payload = {username: document.getElementById("name").value, password: document.getElementById("pass").value, email: document.getElementById("email").value}
 
 
@@ -55,6 +28,7 @@ xhr.onload = function () {
 
         } else {
             alert(x.status)
+            document.getElementById("submitSignup").disabled = false
         }
 
         document.getElementById("submitSignup").value = "Submit"
@@ -76,6 +50,7 @@ xhr.onload = function () {
 login.addEventListener("submit", async (e)=>{
     e.preventDefault()
     document.getElementById("submitLogin").value = "Loading..."
+    document.getElementById("submitLogin").disabled = true
     const payload = {username: document.getElementById("nameLogin").value, password: document.getElementById("passLogin").value}
 
 
@@ -104,6 +79,7 @@ xhr.onload = function () {
 
         else{
             document.getElementById("errLogin").innerText = x.status
+            document.getElementById("submitLogin").disabled = false
         }
 
 
