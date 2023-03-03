@@ -1,19 +1,13 @@
 const express = require("express")
 require('dotenv').config()
-var resp = ""
+
 const io = require('@pm2/io')
 const request = require('request');
 const fs = require("fs");
-var date = new Date
-var month = parseInt(date.getMonth())
-month = month+1
-var formattedDate = date.getFullYear() + "-" + month + "-" + date.getDate()
-var untisResult = undefined
 const stripe = require('stripe')(process.env.STRIPETEST);
 const bcrypt = require('bcrypt');
 const unirest = require('unirest');
 const saltrnd = 5
-const IP = require('ip');
 const nodemailer = require("nodemailer");
 var cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion } = require('mongodb');
@@ -71,11 +65,16 @@ async function sendVerificationEmail(email, id){
         });
       });
 }
-
+var success = ""
 var crntUser = ""
 var untisData = undefined
-
-//untis functions
+var untisResult = undefined
+var emailSuc = undefined
+var date = new Date
+var month = parseInt(date.getMonth())
+month = month+1
+var formattedDate = date.getFullYear() + "-" + month + "-" + date.getDate()
+var jses = undefined
 
 const realtimeUser = io.metric({
     name: 'Realtime user',
@@ -83,82 +82,43 @@ const realtimeUser = io.metric({
 
 var realTimeUsers = 0
 
-function checkUntisLogin(jses) {
-    var options = {
-        'method': 'GET',
-        'url': `https://erato.webuntis.com/WebUntis/api/public/timetable/weekly/data?elementType=5&elementId=5052&date=${formattedDate}&formatId=6`,
-        'headers': {
-          'Cookie': `schoolname="_aXNo"; traceId=814e60d2ecfdc9f8a8661c0a8428972364d9e028; JSESSIONID=${jses}`,
-          'Refer': 'https://erato.webuntis.com/WebUntis/embedded.do?showSidebar=false'
-        }
-      };
+//---------------------------
 
 
-      request(options, function (error, response) {
-        if (error) {
-          console.error(error)
-        }
-        else {      
+// Payments
 
-           try {
-            JSON.parse(response.body)
-
-
-            untisData = response.body
-
-            untisResult =   "is a real account"
-           } catch (error) {
-            untisResult =   "not a real account"
-           }
-
-        }
-})}
-
-async function getUntisKey(username,password){
-    var jsessionid = undefined
-    var req = unirest('POST', 'https://erato.webuntis.com/WebUntis/j_spring_security_check')
-    .headers({
-      'Content-Type': 'application/x-www-form-urlencoded',
-    })
-    .send('school=ish')
-    .send(`j_username=${username}`)
-    .send(`j_password=${password}`)
-    .send('token=')
-    .end(function (res) { 
-      if (res.error) throw new Error(res.error); 
-        jsessionid = res.cookies.JSESSIONID
-        jses = jsessionid
-    });
-
-
-}
-
-// account settings functions
-
-async function setPfp(id, link) {
-    try {
-        await client.connect(uri)
-        const database = client.db('auth');
-        const creds = database.collection('creds');
-        const updateDoc = {$set:{profilePic:link}}
-        const filter = {id: id}
-        const result = await creds.updateOne(filter, updateDoc)
-        success = result
-
-    }
-    finally{
-        await client.close()
-    }
+app.post('/api/create-payment-intent', async (req, res) => {
+    // Create a PaymentIntent with the order amount and currency
     
-}
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: 1000,
+      currency: "eur",
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
+  
+    res.send({
+      clientSecret: paymentIntent.client_secret,
+    });
+  });
 
-async function changeUser(id, username){
+async function paymentCompleted(email, option, cookie) {
     try {
+        var x = null
+        if (option == "email") {
+            x = {email:email}
+        }
+        else{
+            x = {cookie:{[cookie]:"s"}}
+
+        }
+
         await client.connect(uri)
         const database = client.db('auth');
         const creds = database.collection('creds');
-        const updateDoc = {$set:{username:username}}
-        const filter = {id: id}
+        const updateDoc = {$set:{"permissions.paid":true}}
+        const filter = x
         const result = await creds.updateOne(filter, updateDoc)
         success = result
 
@@ -168,19 +128,53 @@ async function changeUser(id, username){
     }
 }
 
-// mongodb / auth functions
+async function sendReceipt(email, paymentID) {
+    
+    let transporter = nodemailer.createTransport({
+        host: "mail.smtp2go.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.NOREPLY, 
+      pass: process.env.NOREPLYPASS, 
+    }
+    })
 
-var success = ""
 
-async function updateUntisInfo(user, pass, id){
+    
+
+    var mailData = {
+        from: `"Tymeloux Payments" <${process.env.NOREPLY}>`,
+        to: email,
+        subject: "Receipt for Tymeloux purchase: " + paymentID, // Subject line
+        text: "Dear " + email + ",\n\n Thank you for your purchase at Tymeloux (PaymentId: " + paymentID + "). We hope you enjoy the software.\n Please contact us at contact@tymeloux.eu if you need any help with either this purchase or anything else.\n\n Best Regards,\n The Tymeloux Team"
+      }
+
+    await new Promise((resolve, reject) => {
+        transporter.sendMail(mailData, (err, info) => {
+          if (err) {
+            console.error(err);
+            reject(err);
+          } else {
+            resolve(info);
+          }
+        });
+      });
+}
+
+//---------------------------
+
+
+// auth system
+
+async function logout(cookie){
     try {
         await client.connect(uri)
         const database = client.db('auth');
         const creds = database.collection('creds');
-        const updateDoc = {$set:{untis:{user: user, pass:pass}}}
-        const filter = {id: id}
-        await creds.updateOne(filter, updateDoc)
-        const result = await creds.updateOne(filter, updateDoc)
+        const updateDoc2 = {$set:{cookie:{}}}
+        const filter = {cookie: {[cookie]:"s"}}
+        const result = await creds.updateOne(filter, updateDoc2)
         success = result
 
     }
@@ -315,11 +309,9 @@ async function run(usr) {
   
       
     }
-  }
+}
 
-
-  var emailSuc = undefined
-  async function runEmail(email) {
+async function runEmail(email) {
     try {
       await client.connect(uri)
       const database = client.db('auth');
@@ -335,107 +327,67 @@ async function run(usr) {
   
       
     }
-  }
-
-
-async function logout(user){
-    try {
-        await client.connect(uri)
-        const database = client.db('auth');
-        const creds = database.collection('creds');
-        const updateDoc2 = {$set:{cookie:{}}}
-        const filter = {username: user}
-        const result = await creds.updateOne(filter, updateDoc2)
-        success = result
-
-    }
-    finally{
-        await client.close()
-    }
 }
 
-
-async function sendMsg(recipient, msg, sender) {
+async function changeEmail(id, newEmail){
     try {
-        
         await client.connect(uri)
-        var x ="Message from " + sender +": "+ msg
         const database = client.db('auth');
         const creds = database.collection('creds');
-        const updateDoc = {$push:{messages:x}}
-        const updateDoc2 = {$set:{lastSent:new Date()}}
-        const filter = {username: recipient}
-        const filter2 = {username:sender}
-        await creds.updateOne(filter2, updateDoc2)
+        const updateDoc = {$set:{email:newEmail}}
+        const filter = {id: id}
         const result = await creds.updateOne(filter, updateDoc)
         success = result
+
     }
     finally{
         await client.close()
     }
 }
 
+app.post("/api/resendemail", async(req,res)=>{
+    var cookie = req.body.cookie[1]
+    await checkCookie(cookie)
+    if(success == undefined){
+        res.send({status:"Error: wrong cookie"})
+    }
+    else{
+        sendVerificationEmail(success.email, success.id)
+        res.send({status: "resent email"})
+    }
+})
 
-// friends system
+app.post("/api/changeemail", async (req,res)=>{
+    var cookie = req.body.cookie[1]
+    var newEmail = req.body.email
+    await checkCookie(cookie)
+    if(success == undefined){
+        res.send({status:"Error: wrong cookie"})
+    }
+    else{
+        var user = success.id
+        await runEmail(newEmail)
 
-
-var jses = undefined
-
-
-
-// Payments
-app.post('/api/create-payment-intent', async (req, res) => {
-    // Create a PaymentIntent with the order amount and currency
-    
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: 1000,
-      currency: "eur",
-      automatic_payment_methods: {
-        enabled: true,
-      },
-    });
-  
-    res.send({
-      clientSecret: paymentIntent.client_secret,
-    });
-  });
-
-async function paymentCompleted(email, option, cookie) {
-    try {
-        var x = null
-        if (option == "email") {
-            x = {email:email}
+        if (emailSuc == undefined) {
+            await changeEmail(user, newEmail)
+            sendVerificationEmail(newEmail, user)
+            res.send({status:"updated email and resent"})
         }
         else{
-            x = {cookie:{[cookie]:"s"}}
-
+            res.send({status:"Error: email already in use"})
         }
 
-        await client.connect(uri)
-        const database = client.db('auth');
-        const creds = database.collection('creds');
-        const updateDoc = {$set:{"permissions.paid":true}}
-        const filter = x
-        const result = await creds.updateOne(filter, updateDoc)
-        success = result
 
     }
-    finally{
-        await client.close()
-    }
-}
-
-
-// auth system
+})
 
 app.post("/api/logout", async (req,res)=>{
     realTimeUsers = realTimeUsers -1
     realtimeUser.set(realTimeUsers)
-    var username = req.body.user
-    await logout(username)
+    var cookie = req.body.cookie[1]
+    await logout(cookie)
     res.send({status:"logoutSuccess!"})
 })
-
 
 app.get("/verify/:userID/", async (req,res)=>{
     var id = req.params.userID
@@ -449,7 +401,6 @@ app.get("/verify/:userID/", async (req,res)=>{
         res.send("You have already been verified.")
     }
 })
-
 
 app.post("/api/signup", async (req, res) =>{
 
@@ -505,25 +456,6 @@ app.post("/api/signup", async (req, res) =>{
     
     }
 })
-
-app.post("/api/messages", async (req,res)=>{
-
-    var cookie = req.body.cookie[1]
-
-    if (cookie == undefined) {
-        res.send({status:"Error: wrong cookie"})
-    }
-    else{
-        await checkCookie(cookie)
-
-        if (success == undefined) {
-            res.send({status:"Error: wrong cookie"})
-        } else {
-            res.send({status:"Success", messages:success.messages})
-        }
-    }
-})
-
 
 app.post("/api/checkcookie", async (req,res)=>{
 
@@ -592,6 +524,125 @@ app.post("/api/login", async (req, res) =>{
     }
 
 })
+
+//---------------------------
+
+
+// messaging system
+
+async function sendMsg(recipient, msg, sender) {
+    try {
+        
+        await client.connect(uri)
+        var x ="Message from " + sender +": "+ msg
+        const database = client.db('auth');
+        const creds = database.collection('creds');
+        const updateDoc = {$push:{messages:x}}
+        const updateDoc2 = {$set:{lastSent:new Date()}}
+        const filter = {username: recipient}
+        const filter2 = {username:sender}
+        await creds.updateOne(filter2, updateDoc2)
+        const result = await creds.updateOne(filter, updateDoc)
+        success = result
+    }
+    finally{
+        await client.close()
+    }
+}
+
+app.post("/api/messages", async (req,res)=>{
+
+    var cookie = req.body.cookie[1]
+
+    if (cookie == undefined) {
+        res.send({status:"Error: wrong cookie"})
+    }
+    else{
+        await checkCookie(cookie)
+
+        if (success == undefined) {
+            res.send({status:"Error: wrong cookie"})
+        } else {
+            res.send({status:"Success", messages:success.messages})
+        }
+    }
+})
+
+app.post("/api/sendmsg", async (req,res)=>{
+    var cookie = req.body.cookie[1]
+    var recipient = req.body.recipient
+    var msg = req.body.message
+    if (recipient == "" || msg == "") {
+        res.send({status:"Error: Incomplete fields"})
+    } else{
+        if (cookie == ""){
+            res.send({status:"Error: Incorrect cookie"})
+        }
+        else{
+            await checkCookie(cookie)
+            if (success == undefined) {
+                res.send({status:"Error: Incorrect cookie"})
+            } 
+            else if (success.permissions.admin == true){
+                var sender = success
+                    await run(recipient)
+                    var recipientCheck = crntUser
+    
+                    if (recipientCheck == undefined || recipient == success.username) {
+                        res.send({status:"Invalid recipient"})
+                    } else {
+                        await sendMsg(recipient, msg, success.username)
+                        res.send({status: "success"})
+                    }
+            }
+            
+            else {
+                var date = new Date().getTime() - new Date(success.lastSent).getTime()
+                var OneDay = (1 * 12 * 60 * 60 * 1000)
+                if (OneDay > date) {
+                    res.send({status: "Error: Too many messages sent in the last 12 hours"})
+                }
+                else if (OneDay < date) {
+                    var sender = success
+                    await run(recipient)
+                    var recipientCheck = crntUser
+    
+                    if (recipientCheck == undefined || recipient == success.username) {
+                        res.send({status:"Invalid recipient"})
+                    } else {
+                        await sendMsg(recipient, msg, success.username)
+                        res.send({status: "success"})
+                    }
+                }
+
+               
+            }
+        }
+    }
+    
+})
+
+//---------------------------
+
+
+// Untis Scraper
+
+async function updateUntisInfo(user, pass, id){
+    try {
+        await client.connect(uri)
+        const database = client.db('auth');
+        const creds = database.collection('creds');
+        const updateDoc = {$set:{untis:{user: user, pass:pass}}}
+        const filter = {id: id}
+        await creds.updateOne(filter, updateDoc)
+        const result = await creds.updateOne(filter, updateDoc)
+        success = result
+
+    }
+    finally{
+        await client.close()
+    }
+}
 
 app.post("/api/untis", async (req, res)=>{
 
@@ -702,6 +753,9 @@ app.post("/api/untissetup", async (req, res)=>{
 })
 
 
+//---------------------------
+
+
 // Managebac Scraper
 
 
@@ -721,6 +775,56 @@ async function uploadMB(session, id) {
     }
 }
 
+function checkUntisLogin(jses) {
+    var options = {
+        'method': 'GET',
+        'url': `https://erato.webuntis.com/WebUntis/api/public/timetable/weekly/data?elementType=5&elementId=5052&date=${formattedDate}&formatId=6`,
+        'headers': {
+          'Cookie': `schoolname="_aXNo"; traceId=814e60d2ecfdc9f8a8661c0a8428972364d9e028; JSESSIONID=${jses}`,
+          'Refer': 'https://erato.webuntis.com/WebUntis/embedded.do?showSidebar=false'
+        }
+      };
+
+
+      request(options, function (error, response) {
+        if (error) {
+          console.error(error)
+        }
+        else {      
+
+           try {
+            JSON.parse(response.body)
+
+
+            untisData = response.body
+
+            untisResult =   "is a real account"
+           } catch (error) {
+            untisResult =   "not a real account"
+           }
+
+        }
+})
+}
+
+async function getUntisKey(username,password){
+    var jsessionid = undefined
+    var req = unirest('POST', 'https://erato.webuntis.com/WebUntis/j_spring_security_check')
+    .headers({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    })
+    .send('school=ish')
+    .send(`j_username=${username}`)
+    .send(`j_password=${password}`)
+    .send('token=')
+    .end(function (res) { 
+      if (res.error) throw new Error(res.error); 
+        jsessionid = res.cookies.JSESSIONID
+        jses = jsessionid
+    });
+
+
+}
 
 app.post("/api/managebacsetup", async (req, res)=>{
     if (req.body.cookie == undefined){
@@ -757,49 +861,6 @@ app.post("/api/managebacsetup", async (req, res)=>{
         }       
     }
 })
-
-
-
-app.post("/api/sendmsg", async (req,res)=>{
-    var cookie = req.body.cookie[1]
-    var recipient = req.body.recipient
-    var msg = req.body.message
-    if (recipient == "" || msg == "") {
-        res.send({status:"Error: Incomplete fields"})
-    } else{
-        if (cookie == ""){
-            res.send({status:"Error: Incorrect cookie"})
-        }
-        else{
-            await checkCookie(cookie)
-            if (success == undefined) {
-                res.send({status:"Error: Incorrect cookie"})
-            } else {
-                var date = new Date().getTime() - new Date(success.lastSent).getTime()
-                var OneDay = (1 * 12 * 60 * 60 * 1000)
-                if (OneDay > date) {
-                    res.send({status: "Error: Too many messages sent in the last 12 hours"})
-                }
-                else if (OneDay < date) {
-                    var sender = success
-                    await run(recipient)
-                    var recipientCheck = crntUser
-    
-                    if (recipientCheck == undefined || recipient == success.username) {
-                        res.send({status:"Invalid recipient"})
-                    } else {
-                        await sendMsg(recipient, msg, success.username)
-                        res.send({status: "success"})
-                    }
-                }
-
-               
-            }
-        }
-    }
-    
-})
-
 app.post("/api/managebac", async (req,res)=>{
 
     await checkCookie(req.body.cookie[1])
@@ -835,8 +896,183 @@ app.post("/api/managebac", async (req,res)=>{
 
 })
 
-// Account Changes
+//---------------------------
 
+
+// Admin Posts
+
+async function changePerms(permission, permissionVal, username) {
+    try {
+        await client.connect(uri)
+        const database = client.db('auth');
+        const creds = database.collection('creds');
+        var path = "permissions."+permission
+        const updateDoc = {$set:{[path]:permissionVal}}
+        const filter = {username: username}
+        const result = await creds.updateOne(filter, updateDoc)
+        success = result
+    }
+    finally{
+        await client.close()
+    }
+}
+
+async function deleteUser(username){
+    try {
+        await client.connect(uri)
+        const database = client.db('auth');
+        const creds = database.collection('creds');
+        const filter = {username: username}
+        const result = await creds.deleteOne(filter)
+        success = result
+    }
+    finally{
+        await client.close()
+    }
+}
+
+app.post("/api/ban", async (req,res)=>{
+    var cookie = req.body.cookie[1]
+    var username = req.body.username
+    await checkCookie(cookie)
+    if (success == undefined) {
+        res.send({status:"Error: Wrong cookie"})
+    } else if (success.permissions.admin == false){
+        res.send({status:"Error: not a admin"})
+    }
+    else if(success.permissions.admin == true){
+        await run(username)
+        if (crntUser == undefined) {
+            res.send({status:"Error: invalid user"})
+        } else {
+            await changePerms("banned", true, username)
+            res.send({status:"success"})
+        }
+
+    }
+
+})
+
+app.post("/api/unban", async (req,res)=>{
+    var cookie = req.body.cookie[1]
+    var username = req.body.username
+    await checkCookie(cookie)
+    if (success == undefined) {
+        res.send({status:"Error: Wrong cookie"})
+    } else if (success.permissions.admin == false){
+        res.send({status:"Error: not a admin"})
+    }
+    else if(success.permissions.admin == true){
+        await run(username)
+        if (crntUser == undefined) {
+            res.send({status:"Error: invalid user"})
+        } else {
+            await changePerms("banned", false, username)
+            res.send({status:"success"})
+        }
+
+    }
+
+})
+
+app.post("/api/adminverify", async (req,res)=>{
+    var cookie = req.body.cookie[1]
+    var username = req.body.username
+    await checkCookie(cookie)
+    if (success == undefined) {
+        res.send({status:"Error: Wrong cookie"})
+    } else if (success.permissions.admin == false){
+        res.send({status:"Error: not a admin"})
+    }
+    else if(success.permissions.admin == true){
+        await run(username)
+
+        if (crntUser == undefined) {
+            res.send({status:"Error: invalid user"})
+        } else {
+            await changePerms("verified", true, username)
+            res.send({status:"success"})
+        }
+}})
+
+app.post("/api/unverify", async (req,res)=>{
+    var cookie = req.body.cookie[1]
+    var username = req.body.username
+    await checkCookie(cookie)
+    if (success == undefined) {
+        res.send({status:"Error: Wrong cookie"})
+    } else if (success.permissions.admin == false){
+        res.send({status:"Error: not a admin"})
+    }
+    else if(success.permissions.admin == true){
+        await run(username)
+
+        if (crntUser == undefined) {
+            res.send({status:"Error: invalid user"})
+        } else {
+            await changePerms("verified", false, username)
+            res.send({status:"success"})
+        }
+}})
+
+app.post("/api/deleteuser", async(req,res)=>{
+    var cookie = req.body.cookie[1]
+    var username = req.body.username
+    await checkCookie(cookie)
+    if (success == undefined) {
+        res.send({status:"Error: Wrong cookie"})
+    } else if (success.permissions.admin == false){
+        res.send({status:"Error: not a admin"})
+    }
+    else if(success.permissions.admin == true){
+        await run(username)
+
+        if (crntUser == undefined) {
+            res.send({status:"Error: invalid user"})
+        } else {
+            await deleteUser(username)
+            res.send({status:"success"})
+        }
+}
+})
+
+//---------------------------
+
+
+//* Account Changes *//
+
+async function setPfp(id, link) {
+    try {
+        await client.connect(uri)
+        const database = client.db('auth');
+        const creds = database.collection('creds');
+        const updateDoc = {$set:{profilePic:link}}
+        const filter = {id: id}
+        const result = await creds.updateOne(filter, updateDoc)
+        success = result
+
+    }
+    finally{
+        await client.close()
+    }
+    
+}
+
+async function changeUser(id, username){
+    try {
+        await client.connect(uri)
+        const database = client.db('auth');
+        const creds = database.collection('creds');
+        const updateDoc = {$set:{username:username}}
+        const filter = {id: id}
+        const result = await creds.updateOne(filter, updateDoc)
+        success = result
+
+    }
+    finally{
+        await client.close()
+    }
+}
 
 app.get("/api/resetpass", async (req,res)=>{
     res.send("You cant reset your password atm, its coming soon.")
@@ -889,7 +1125,10 @@ app.post("/api/usernameChange", async (req, res)=>{
    
 })
 
+//---------------------------
 
+
+// routes //
 
 app.get("/auth", async (req,res)=>{
     var cookie = req.cookies.auth
@@ -910,6 +1149,11 @@ app.get("/home", async (req,res)=>{
     if(success == undefined){
         res.redirect("/auth")
     }
+
+    else if (success.permissions.banned == true){
+        res.sendFile(__dirname + "/private/banned.html")
+    }
+
     else if (success.permissions.verified == false){
         res.redirect("/pendingVerify")
     }
@@ -931,6 +1175,11 @@ app.get("/untis", async(req,res)=>{
     if(success != undefined){
         res.sendFile(__dirname + "/private/untis.html")
     }
+
+    else if (success.permissions.banned == true){
+        res.sendFile(__dirname + "/private/banned.html")
+    }
+
     else if (success.permissions.verified == false){
         res.redirect("/pendingVerify")
     }
@@ -950,8 +1199,12 @@ app.get("/mb", async(req,res)=>{
 
     if(success == undefined){
         res.redirect("/auth")
-
     }
+
+    else if (success.permissions.banned == true){
+        res.sendFile(__dirname + "/private/banned.html")
+    }
+
     else if (success.permissions.verified == false){
         res.redirect("/pendingVerify")
     }
@@ -974,6 +1227,10 @@ app.get("/message", async(req,res)=>{
         res.redirect("/auth")
     }
 
+    else if (success.permissions.banned == true){
+        res.sendFile(__dirname + "/private/banned.html")
+    }
+
     else if (success.permissions.verified == false){
         res.redirect("/pendingVerify")
     }
@@ -986,7 +1243,6 @@ app.get("/message", async(req,res)=>{
         res.sendFile(__dirname + "/private/messages.html")
     }
 })
-
 
 app.get("/payment", async(req,res)=>{
     var cookie = req.cookies.auth
@@ -1002,12 +1258,18 @@ app.get("/payment", async(req,res)=>{
         res.redirect("/home")
     }
 })
+
 app.get("/pendingVerify", async(req,res)=>{
     var cookie = req.cookies.auth
     await checkCookie(cookie)
     if (success == undefined) {
         res.redirect("/auth")
     }
+
+    else if (success.permissions.banned == true){
+        res.sendFile(__dirname + "/private/banned.html")
+    }
+
     else if (success.permissions.verified == false){
         res.sendFile(__dirname + "/private/verify.html")
     }
@@ -1018,6 +1280,21 @@ app.get("/pendingVerify", async(req,res)=>{
 
 app.get("/", (r, s)=>{
     s.redirect("/landing")  
+})
+
+app.get("/admin", async (req,res)=>{
+    var cookie = req.cookies.auth
+    await checkCookie(cookie)
+    if (success == undefined) {
+        res.redirect("/auth")
+    }
+    else if (success.permissions.admin == false) {
+        res.redirect("/home")
+    }
+    else if(success.permissions.admin == true){
+        res.sendFile(__dirname+ "/private/admin.html")
+    }
+
 })
 
 app.get("/paymentcomplete", async (req,res)=>{
@@ -1034,28 +1311,30 @@ app.get("/paymentcomplete", async (req,res)=>{
         var email = latest_charge[0].receipt_email
         await paymentCompleted(email, "email")
         if (success.modifiedCount == 1) {
-            res.send("account updated")
+            res.sendFile(__dirname + "/private/congrats.html")
         }
         else{
             await paymentCompleted("email", "cookie", req.cookies.auth)
             if (success.modifiedCount == 1) {
-                res.send("account updated with cookie")
+                res.sendFile(__dirname + "/private/congrats.html")
+                sendReceipt(email, latest_charge[0].id)
                 console.log("yay, new payment")
             }
             else{
-                res.send("attemped but didnt work")
+                console.log("Error: manual update for " + latest_charge[0].email)
+                res.send(`There was a error updating your account, this has to thus be done manually. Contact info@tymeloux.eu or support@tymeloux.eu with your email and your transaction ID (${latest_charge[0].id}).`)
             }
         }
     }
     else{
-        res.send("payment didnt succeed.")
+        res.sendFile(__dirname + "/private/payError.html")
     }
     
 
     
 })
 
-
+//---------------------------
 
 app.listen(PORT, ()=>{
     console.log("server running on http://localhost:" + PORT)

@@ -52,7 +52,8 @@ checkAuth()
 
 
 function logout() {
-    var payload= {user:activeUser.username}
+    var authCookie = document.cookie.split("=")
+    var payload= {cookie:authCookie}
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/logout", true);
     xhr.setRequestHeader('Content-Type', 'application/json');

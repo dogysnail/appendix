@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Page</title>
+</head>
+<body>
+
+    <p>Send message to user: </p>
+
+    <form id="message">
+        <input id="1" type="text" placeholder="users name">
+        <input id="2" type="text" placeholder="message">
+        <input type="button" value="Send" onclick="message()">
+    </form>
+
+    <p>Verify User:</p>
+    <form id="verify">
+        <input id="3" type="text" placeholder="username">
+        <input type="button" value="Verify" onclick="verify()">
+    </form>
+
+    <p>Unverify User:</p>
+    <form id="unverify">
+        <input id="4" type="text" placeholder="username">
+        <input type="button" value="Unverify" onclick="unverify()">
+    </form>
+
+    <p>Ban user Account: </p>
+    
+    <form  id="ban">
+        <input id="5" type="text" placeholder="username">
+        <input type="button" value="Ban" onclick="ban()">
+    </form>
+    
+    <p>Unban user Account: </p>
+    <form>
+        <input id="6" type="text" placeholder="username">
+        <input type="button" value="Unban" onclick="unban()">
+    </form>
+
+    <p>Delete user Account: </p>
+    <form>
+        <input id="7" type="text" placeholder="username">
+        <input type="button" value="Delete" onclick="deleteUser()">
+    </form>
+    <script src="./admin.js"></script>
+</body>
+</html>

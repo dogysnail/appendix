@@ -51,7 +51,7 @@ async function handleSubmit(e) {
     elements,
     confirmParams: {
       // Make sure to change this to your payment completion page
-      return_url: "http://localhost:3000/paymentcomplete",
+      return_url: "http://tymeloux.eu/paymentcomplete",
       receipt_email: emailAddress,
     },
   });
