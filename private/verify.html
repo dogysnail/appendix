@@ -5,46 +5,22 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verification</title>
+    <link rel="stylesheet" href="verify/style.css">
 </head>
 <body>
-    <p>You are stil pending Verification. Check your email for a link.</p>
-    <p>Meant to use a different email address? Then change it below.</p>
+    <div>
+        <h1>A Verification email has been sent to: </h1>
+        <p id="email">Loading...</p>
+        <input class="button" id="resend" type="button" value="resend email" onclick="makeReq('resendemail')">
+        <form>
+            <input  type="text" id="newEmail" placeholder="new email address"> <br>
+            <input class="button" type="button" onclick="makeReq('changeemail', document.getElementById('newEmail').value)" value="change email"> 
 
-    <input type="button" value="resend email" onclick="makeReq('resendemail')">
+        </form>
 
-    <p>change email</p>
-    <form>
-        <input type="text" id="newEmail" placeholder="new email address">
-        <input type="button" onclick="makeReq('changeemail', document.getElementById('newEmail').value)" value="change email">
-    </form>
+    </div>
 
-    <script>
 
-        function makeReq(path, newMail){
-            var authCookie = document.cookie.split("=")
-            var payload = {}
-            if (newMail == undefined) {
-                payload = {cookie:authCookie}
-            } else {
-                payload = {cookie:authCookie, email:newMail}
-            }
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", "/api/"+path, true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.send(JSON.stringify(payload));
-            xhr.onload = function () {
-            if (xhr.status >= 200 && xhr.status < 300) {
-            console.log(xhr.responseText);
-            var x = JSON.parse(xhr.responseText)
-            alert(x.status)
-        } else {
-            console.log(xhr.responseText);
-        }
-    
-    };
-
-        }
-
-    </script>
+    <script src="verify/verify.js"></script>
 </body>
 </html>

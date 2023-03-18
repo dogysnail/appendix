@@ -1,0 +1,60 @@
+body{
+    background: linear-gradient(112.9deg, #B486FF 0%, #B5F6FF 100%);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+div{
+    background-color: white;
+    position: absolute;
+    width: 40vw;
+    height: 85vh;
+    left: 30vw;
+    top: 7.5vh;
+    text-align: center;
+    border-radius: 1vw;
+}
+
+h1{
+    margin-top: 10vh;
+    font-size: min(2vw, 4vh);
+    font-weight: 400;
+}
+p{
+    font-size: min(2vw, 5vh);
+    font-weight:600;
+    font-style: italic;
+    margin-bottom: 20vh;
+}
+
+.button{
+    height: 8vh;
+    font-size: 200%;
+    width: 26vw; 
+    border: none;
+    background-image: linear-gradient(135deg, rgba(117,100,217,1) 0%, rgba(117,100,217,0.78) 100%);
+    color: white;
+    transition: 0.2s;
+    margin-bottom: 8vh;
+}
+
+.button:hover{
+    filter: contrast(2);
+    cursor: pointer;
+}
+
+input{
+    width: 22vw;
+    height: 7vh;
+    padding-left: 2vw;
+    padding-right: 2vw;
+    margin-bottom: 3vh;
+    background-color: #E8F2FF;
+    border: 1.5px solid #ccc;
+    border-radius: 4px;
+    font-size: medium;
+    transition: 0.2s;
+    font-weight: 200;
+}

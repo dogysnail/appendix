@@ -471,7 +471,7 @@ app.post("/api/checkcookie", async (req,res)=>{
      else {
 
         if (success.permissions.verified == false) {
-            res.send({status:"unverified"})
+            res.send({status:"unverified", user:{username: success.username, email: success.email, profilePic: success.profilePic}, messages:k, permissions:success.permissions})
         }
         else{
             if (success.permissions.paid == false) {
@@ -494,6 +494,7 @@ app.post("/api/login", async (req, res) =>{
     var user = req.body.username
     var pass = req.body.password
     var accntPass = undefined
+    var stayLoggedIn = req.body.stay
 
     //check if user actually exists
     await login(user)
@@ -508,9 +509,15 @@ app.post("/api/login", async (req, res) =>{
             if (result == true){
                     var cookie = randomUUID()
                     await asignCookie(user, cookie)
-                   
-                    res.cookie("auth", cookie, {expires: new Date().now+900000})
+                   if (stayLoggedIn == true) {
+                    res.cookie("auth", cookie, {maxAge: 86400000*30})
                     res.send({status:"loginComplete", cookie:cookie, username:user})
+                   }
+                   else{
+                    res.cookie("auth", cookie, {maxAge: 86400000})
+                    res.send({status:"loginComplete", cookie:cookie, username:user})
+                   }
+
             }
 
             else {
@@ -670,7 +677,8 @@ app.post("/api/untis", async (req, res)=>{
         setTimeout(() => {
             var sus = untisData
             sus = JSON.parse(sus)
-            sus = sus.data.result.data.elementPeriods[5052]
+            if (sus.status == undefined) {
+                sus = sus.data.result.data.elementPeriods[5052]
             var cancelledLessons = {cancelled:{}}
             var count = 0
             for (var i = 0; i < sus.length-1; i++){
@@ -693,9 +701,13 @@ app.post("/api/untis", async (req, res)=>{
                 }
             }
             res.send({status:"complete", cancelledLessons})
+            } else {
+                res.send({status:"Error: Untis not set up correctly"})
+            }
+            
 
-        }, 500);
-        }, 500);
+        }, 400);
+        }, 400);
         
 
         
@@ -796,12 +808,19 @@ function checkUntisLogin(jses) {
             JSON.parse(response.body)
 
 
-            untisData = response.body
 
             untisResult =   "is a real account"
+            
            } catch (error) {
             untisResult =   "not a real account"
            }
+
+
+           if (untisResult == "is a real account") {
+            untisData = response.body
+        } else {
+            untisData = JSON.stringify({status:"Error: Untis not set up correctly"})
+        }
 
         }
 })
@@ -1332,6 +1351,14 @@ app.get("/paymentcomplete", async (req,res)=>{
     
 
     
+})
+
+app.get("/tos", (req,res)=>{
+    res.sendFile(__dirname + "/public/policies/tos.html")
+})
+
+app.get("/privacy", (req,res)=>{
+    res.sendFile(__dirname + "/public/policies/privacy.html")
 })
 
 //---------------------------

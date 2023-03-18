@@ -103,7 +103,7 @@ function getUntis() {
     
                     var z = document.getElementById("cancelledForm")
                     var y = document.createElement("li")
-                    y.innerText = cancelled[index+1].name + " At: " + cancelled[index+1].time.toString()
+                    y.innerText = cancelled[index+1].name + " At: " + cancelled[index+1].time.toString() + " on: " + cancelled[index+1].date
                     z.appendChild(y)
     
                 }
@@ -120,7 +120,7 @@ function getUntis() {
                 console.log("error: Untis not set up")
                 var z = document.getElementById("cancelledForm")
                 var y = document.createElement("li")
-                y.innerText = "Please set up untis first. You can do so by clicking here"
+                y.innerText = "Error: Untis is not set up"
                 z.appendChild(y)
             }
 
