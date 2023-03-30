@@ -19,6 +19,15 @@ xhr.onload = function () {
         // Runs when the request is successful
         console.log(xhr.responseText);
 
+        var x = xhr.responseText
+
+        if (x == "untis updated"){
+            window.location.href = "/home"
+        }
+        else{
+            alert(x)
+        }
+
 
     } else {
         // Runs when it's not

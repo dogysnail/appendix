@@ -1,6 +1,8 @@
 const express = require("express")
 require('dotenv').config()
-
+const cheerio = require("cheerio")
+const schedule = require('node-schedule');
+const axios = require("axios")
 const io = require('@pm2/io')
 const request = require('request');
 const fs = require("fs");
@@ -33,7 +35,7 @@ app.use("/api", limiter)
 
 async function sendVerificationEmail(email, id){
 
-    var verifyLink = "http://https://tymeloux.eu/verify/" + id + "/"
+    var verifyLink = "https://tymeloux.eu/verify/" + id + "/"
     let transporter = nodemailer.createTransport({
         host: "mail.smtp2go.com",
     port: 465,
@@ -43,10 +45,6 @@ async function sendVerificationEmail(email, id){
       pass: process.env.EMAILPASS, // generated ethereal password
     }
     })
-
-
-    
-
     var mailData = {
         from: `"Tymeloux Verification" <${process.env.EMAIL}>`, // sender address
         to: email, // list of receivers
@@ -681,8 +679,8 @@ app.post("/api/untis", async (req, res)=>{
                 sus = sus.data.result.data.elementPeriods[5052]
             var cancelledLessons = {cancelled:{}}
             var count = 0
-            for (var i = 0; i < sus.length-1; i++){
-                if (sus[i].elements[0].state != "REGULAR" || sus[i].cellState == "CANCEL"){
+            for (var i = 0; i < sus.length; i++){
+                if (sus[i].elements[0].state != "REGULAR" || sus[i].cellState == "CANCEL" || sus[i].cellState == "SUBSTITUTION"){
                   var cancelDate = sus[i].date
                   cancelDate = JSON.stringify(cancelDate)
                   var formattedcancelDate =cancelDate.slice(6) +"/"+cancelDate.slice(4, 6) + "/" + cancelDate.slice(0, 4)
@@ -706,8 +704,8 @@ app.post("/api/untis", async (req, res)=>{
             }
             
 
-        }, 400);
-        }, 400);
+        }, 800);
+        }, 800);
         
 
         
@@ -796,8 +794,6 @@ function checkUntisLogin(jses) {
           'Refer': 'https://erato.webuntis.com/WebUntis/embedded.do?showSidebar=false'
         }
       };
-
-
       request(options, function (error, response) {
         if (error) {
           console.error(error)
@@ -851,8 +847,6 @@ app.post("/api/managebacsetup", async (req, res)=>{
     }
     else{
         await checkCookie(req.body.cookie[1])
-        if(success.mbSession == undefined){
-
 
             var request = require('request');
             var options = {
@@ -877,8 +871,8 @@ app.post("/api/managebacsetup", async (req, res)=>{
             res.send({status:"set succesfully"})
           }
         });
-        }       
-    }
+        }     
+    
 })
 app.post("/api/managebac", async (req,res)=>{
 
@@ -913,6 +907,53 @@ app.post("/api/managebac", async (req,res)=>{
     
     
 
+})
+
+app.post("/api/managebacscrapepage", async(req,res)=>{
+    await checkCookie(req.body.cookie[1])
+
+    var MB_Session = success.mbSession
+
+    if (MB_Session == undefined) {
+        res.send({status:"Error: ManageBac not set up"})
+    }
+    else{
+        let config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: 'https://ishthehague.managebac.com/student/classes/my',
+            headers: { 
+              'Cookie': '_managebac_session=' + MB_Session
+            }
+          };
+        const axiosResponse = await axios.request(config)
+        const $ = cheerio.load(axiosResponse.data)
+        var classes = []
+        var ids = []
+        $(".ib-class-component")
+            .find(".title")
+            .each((index, element) => {
+                var y = $(element).text()
+                var y = y.replace(/\n/g, " ")
+                var y = y.trim()
+                classes.push(y)
+            })
+        
+        $(".ib-class-component")
+            .find(".title")
+            .find("a")
+            .each((index, element)=>{
+                var y = $(element).attr("href")
+                y = y.substring(17)
+                ids.push(y)
+            })
+
+
+            res.send({status: "complete", result:{id: ids, classes: classes}})
+    }
+
+
+        
 })
 
 //---------------------------
@@ -1240,6 +1281,7 @@ app.get("/mb", async(req,res)=>{
 
 app.get("/message", async(req,res)=>{
     var cookie = req.cookies.auth
+
     await checkCookie(cookie)
 
     if(success == undefined){
@@ -1330,14 +1372,35 @@ app.get("/paymentcomplete", async (req,res)=>{
         var email = latest_charge[0].receipt_email
         await paymentCompleted(email, "email")
         if (success.modifiedCount == 1) {
+            var z = Object.keys(req.cookies)
+            if(z.length > 1){
+                for (let index = 0; index < z.length; index++) {
+                    const element = array[index];
+                    if (element != "auth") {
+                        res.clearCookie(element)
+                    }
+                }
+            }
             res.sendFile(__dirname + "/private/congrats.html")
+            sendReceipt(email, latest_charge[0].id)
+            console.log("yay, new payment")
         }
         else{
             await paymentCompleted("email", "cookie", req.cookies.auth)
             if (success.modifiedCount == 1) {
+                var z = Object.keys(req.cookies)
+                if(z.length > 1){
+                    for (let index = 0; index < z.length; index++) {
+                        const element = array[index];
+                        if (element != "auth") {
+                            res.clearCookie(element)
+                        }
+                    }
+                }
                 res.sendFile(__dirname + "/private/congrats.html")
                 sendReceipt(email, latest_charge[0].id)
                 console.log("yay, new payment")
+
             }
             else{
                 console.log("Error: manual update for " + latest_charge[0].email)
@@ -1363,10 +1426,136 @@ app.get("/privacy", (req,res)=>{
 
 //---------------------------
 
-app.listen(PORT, ()=>{
-    console.log("server running on http://localhost:" + PORT)
+// Scheduler
+
+app.get("/api/testing", async(req,res)=>{
+ 
 })
 
 
 
+const job = schedule.scheduleJob("0 7 * * MON",async function(){
+    try {
+        await client.connect(uri)
+        const database = client.db("auth");
+        const creds = database.collection("creds");
+        const estimate = await creds.countDocuments();
+        const query = {permissions:{verified:true, paid:true, admin:false, banned:false, earlyUser:true}};
+        const options = {
+          sort: { username: 1 },
+          projection: {_id:0, "username":1,"email":1, "untis":1},
+        };
+        const cursor = creds.find(query, options);
+        if ((await creds.countDocuments(query)) === 0) {
+        }
+        await cursor.forEach(async (doc)=>{
+            if (doc.untis == null) {
+            } else {
 
+                getUntisKey(doc.untis.user, doc.untis.pass)
+                setTimeout(() => {
+                    checkUntisLogin(jses)
+                setTimeout(async () => {
+                    sus = JSON.parse(untisData)
+                    if (sus.status == undefined) {
+                        sus = sus.data.result.data.elementPeriods[5052]
+                    var cancelledLessons = []
+                    var count = 0
+                    for (var i = 0; i < sus.length; i++){
+                        if (sus[i].elements[0].state != "REGULAR" || sus[i].cellState == "CANCEL" || sus[i].cellState == "SUBSTITUTION"){
+                          var cancelDate = sus[i].date
+                          cancelDate = JSON.stringify(cancelDate)
+                          var formattedcancelDate =cancelDate.slice(6) +"/"+cancelDate.slice(4, 6) + "/" + cancelDate.slice(0, 4)
+                        var name = JSON.stringify(sus[i].studentGroup).slice(1,8)
+                        var time = sus[i].startTime
+                        count = count+1
+                        cancelledLessons.push(`<li>Lesson: ${name} cancelled at: ${time} on: ${formattedcancelDate}</li>`)
+                        }}
+
+                let transporter = nodemailer.createTransport({
+                    host: "mail.smtp2go.com",
+                port: 465,
+                secure: true,
+                auth: {
+                  user: process.env.NOREPLY,
+                  pass: process.env.NOREPLYPASS,
+                }
+                })
+                var mailData = {
+                    from: `"Tymeloux Untis Update" <${process.env.NOREPLY}>`,
+                    to: doc.email,
+                    subject: `Cancelled Lessons ${new Date}`,
+                    html:`
+                    <html lang="en">
+                    <body>
+                        <style>
+                            body{
+                                background-color: #111111;
+                                padding-left: 3vw;
+                                padding-top: 3vw;
+                                font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+                            }
+                            h1{
+                                color: white;
+                            }
+                            h2{
+                                color: white;
+                                font-weight: 100;
+                                font-style: italic;
+                            }
+                            ul{
+                                background-color: #FFF972;
+                                width: 45vw;
+                                padding-top: 2vh;
+                                padding-bottom: 2vh;
+                                padding-right: 2vw;
+                                border-radius: 10px;
+                                list-style: none;
+                            }
+                            li{
+                                padding-top: 2vh;
+                                padding-bottom: 2vh;
+                                padding-left: 1vw;
+                                color: #111111;
+                                background-color: white;
+                                font-size: 1.5vw;
+                                margin-bottom: 2vh;
+                            }
+                            li:last-child{
+                                margin-bottom: 0vh !important;
+                            }
+                        </style>
+                        <h1>Dear ${doc.username},</h1>
+                        <h2>The following lessons have been cancelled. Enjoy the time off 😉😉</h2>
+                        <ul>
+                            ${cancelledLessons}
+                        </ul>
+                        <h2>Best Regards,</h2>
+                        <h1>The Tymeloux Team</h1>
+                    
+                    </body>
+                    </html>`
+                  }
+                await new Promise((resolve, reject) => {
+                    transporter.sendMail(mailData, (err, info) => {
+                      if (err) {
+                        console.error(err);
+                        reject(err);
+                      } else {
+                        resolve(info);
+                      }
+                    });
+                  });
+            }}, 1000);
+                }, 1000);
+            }
+        });
+      } finally {     
+        await client.close();    
+      }
+  })
+
+
+app.listen(PORT, ()=>{
+    console.log("server running on http://localhost:" + PORT)
+})

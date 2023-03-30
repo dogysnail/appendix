@@ -26,6 +26,7 @@ function checkAuth() {
                 document.getElementById("welcomeText").innerText = x.user.username
                 document.getElementById("welcomeText2").innerText = x.user.username
                 document.getElementById("welcomeText3").innerText = x.user.username
+                document.getElementById("emailText").innerText = x.user.email
                 document.getElementById("numMsgs").innerText = x.messages
                 activeUser = x.user
 
@@ -107,8 +108,11 @@ function getUntis() {
                     z.appendChild(y)
     
                 }
+                document.getElementById("cancelledLessonsText").innerText = Object.keys(cancelled).length
+
                 }
                 else{
+                    document.getElementById("cancelledLessonsText").innerText = "0"
                     var z = document.getElementById("cancelledForm")
                     var y = document.createElement("li")
                     y.innerText = "No Lessons Cancelled This Week :("
@@ -159,6 +163,7 @@ function getMB(){
                 if (resp.length == 0) {
                     var li = document.createElement("li")
                     li.innerText = "No Work, Whoo Hoo 🥳!"
+                    document.getElementById("tasksDueText").innerText = "0"
                     ul.appendChild(li)
                 } else {
                     for (let index = 0; index < resp.length; index++) {
@@ -166,7 +171,7 @@ function getMB(){
                         li.innerText = resp[index].title
                         ul.appendChild(li)
                     }
-
+                    document.getElementById("tasksDueText").innerText = resp.length
                 }
                 
         } 
@@ -215,6 +220,13 @@ function uploadImg() {
             // Runs when the request is successful
             console.log(xhr.responseText);
             var x = JSON.parse(xhr.responseText)
+
+            if(x.status == "200 OK"){
+                window.location.href = "/home"
+            }
+            else{
+                alert(x.status)
+            }
             
 
 
@@ -229,11 +241,33 @@ function uploadImg() {
 function showSettings() {
     document.getElementById("settings").style.display = "block"
     document.getElementById("accnt").style.display = "none"
+    document.getElementById("widgets").style.display = "none"
+    document.getElementById("dates").style.display = "none"
+}
+
+function toDate(){
+    document.querySelector("#header > p > a:nth-child(2)").id = "activeHeader"
+    document.querySelector("#header > p > a:nth-child(1)").id = ""
+    document.getElementById("widgets").style.display = "none"
+    document.getElementById("dates").style.display = "block"
+}
+
+function toStat(){
+    document.querySelector("#header > p > a:nth-child(1)").id = "activeHeader"
+    document.querySelector("#header > p > a:nth-child(2)").id = ""
+    document.getElementById("widgets").style.display = "grid"
+    document.getElementById("dates").style.display = "none"
 }
 
 function hideSettings() {
     document.getElementById("settings").style.display = "none"
-    document.getElementById("accnt").style.display = "block"
+    document.getElementById("accnt").style.display = "grid"
+    document.getElementById("widgets").style.display = "grid"
+    document.getElementById("dates").style.display = "none"
+    document.querySelector("#header > p > a:nth-child(1)").id = "activeHeader"
+    document.querySelector("#header > p > a:nth-child(2)").id = ""
+    document.getElementById("widgets").style.display = "grid"
+    document.getElementById("dates").style.display = "none"
 }
 
 function toUntis() {
